@@ -1,0 +1,12 @@
+ca:
+    root:
+      passphrase: 'rootcapass'
+      days: 3650
+    intermediate:
+      passphrase: 'intermediatecapass'
+      days: 365
+      ocsp:
+        passphrase: 'ocsppass'
+        days: 3650
+        ip: 127.0.0.1
+        port: 2560
