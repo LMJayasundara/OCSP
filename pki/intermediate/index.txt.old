@@ -1,3 +1,2 @@
-V	230712051136Z		1000	unknown	/C=LK/ST=WEST/L=COLOMBO/O=VEGA/OU=CG/CN=localhost/emailAddress=server@gmail.com
-V	230712051141Z		1001	unknown	/C=LK/ST=WEST/L=COLOMBO/O=VEGA/OU=CG/CN=client.localhost/emailAddress=client@gmail.com
-V	320709051143Z		1002	unknown	/C=LK/ST=WEST/L=COLOMBO/O=VEGA/OU=CG/CN=localhost/emailAddress=ocsp@gmail.com
+V	230718085107Z		1000	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=localhost/emailAddress=server@email.com
+V	230718085110Z		1001	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=client.admin/emailAddress=admin@email.com

@@ -19,10 +19,10 @@ private_key       = $dir/private/root.key.pem
 certificate       = $dir/certs/root.cert.pem
 
 # For certificate revocation lists.
-crlnumber         = $dir/crlnumber
-crl               = $dir/crl/ca.crl.pem
-crl_extensions    = crl_ext
-default_crl_days  = 30
+# crlnumber         = $dir/crlnumber
+# crl               = $dir/crl/ca.crl.pem
+# crl_extensions    = crl_ext
+# default_crl_days  = 30
 
 # SHA-1 is deprecated, so use SHA-2 instead.
 default_md        = sha256
@@ -98,15 +98,15 @@ authorityKeyIdentifier = keyid:always,issuer
 basicConstraints = critical, CA:true, pathlen:0
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
-[ usr_cert ]
+# [ usr_cert ]
 # Extensions for client certificates (`man x509v3_config`).
-basicConstraints = CA:FALSE
-nsCertType = client, email
-nsComment = "OpenSSL Generated Client Certificate"
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
-keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = clientAuth, emailProtection
+# basicConstraints = CA:FALSE
+# nsCertType = client, email
+# nsComment = "OpenSSL Generated Client Certificate"
+# subjectKeyIdentifier = hash
+# authorityKeyIdentifier = keyid,issuer
+# keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+# extendedKeyUsage = clientAuth, emailProtection
 
 [ server_cert ]
 # Extensions for server certificates (`man x509v3_config`).
@@ -118,9 +118,9 @@ authorityKeyIdentifier = keyid,issuer:always
 keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 
-[ crl_ext ]
+# [ crl_ext ]
 # Extension for CRLs (`man x509v3_config`).
-authorityKeyIdentifier=keyid:always
+# authorityKeyIdentifier=keyid:always
 
 [ ocsp ]
 # Extension for OCSP signing certificates (`man ocsp`).
