@@ -13,7 +13,7 @@ var startServer = function() {
         // spawn
         ocsp = spawn('openssl', [
             'ocsp',
-            '-port', global.config.ca.intermediate.ocsp.port,
+            '-port', global.config.ca.ocsp.port,
             '-text',
             '-index', 'intermediate/index.txt',
             '-CA', 'intermediate/certs/ca-chain.cert.pem',
@@ -29,22 +29,22 @@ var startServer = function() {
         // // exec
         // ocsp = exec('openssl', [
         //     'ocsp',
-        //     '-port', global.config.ca.intermediate.ocsp.port,
+        //     '-port', global.config.ca.ocsp.port,
         //     '-text',
         //     '-index', 'C:/Users/Lahiru/Desktop/gitdesk/OCSP/pki/intermediate/index.txt',
         //     '-CA', 'C:/Users/Lahiru/Desktop/gitdesk/OCSP/pki/intermediate/certs/ca-chain.cert.pem',
         //     '-rkey', 'C:/Users/Lahiru/Desktop/gitdesk/OCSP/pki/ocsp/private/ocsp.key.pem',
         //     '-rsigner', 'C:/Users/Lahiru/Desktop/gitdesk/OCSP/pki/ocsp/certs/ocsp.cert.pem',
-        //     // '-passin', 'pass:'+global.config.ca.intermediate.ocsp.passphrase
+        //     // '-passin', 'pass:'+global.config.ca.ocsp.passphrase
         //     // '-passin', `pass:${password}`
         //  ]);
 
         // // Enter ocsp private key password
         // ocsp.stdin.setEncoding('utf-8');
-        // ocsp.stdin.write(global.config.ca.intermediate.ocsp.passphrase + '\n');
+        // ocsp.stdin.write(global.config.ca.ocsp.passphrase + '\n');
         // ocsp.stdin.end();
 
-        console.log(">>>>>> OCSP server is listening on " + global.config.ca.intermediate.ocsp.ip + ':' + global.config.ca.intermediate.ocsp.port + " <<<<<<");
+        console.log(">>>>>> OCSP server is listening on " + global.config.ca.ocsp.ip + ':' + global.config.ca.ocsp.port + " <<<<<<");
 
         resolve();
 
@@ -72,18 +72,9 @@ var stopServer = function() {
     console.log("OCSP server stopped.");
 };
 
-// var checkStatus = function() {
-//     return new Promise(function(resolve, reject) {
-//         ocsp.stdout.on('data', function(data) {
-//             resolve(data);
-//         });
-//     });
-// }
-
 module.exports = {
     startServer: startServer,
     stopServer: stopServer
-    // checkStatus: checkStatus
 }
 
 
