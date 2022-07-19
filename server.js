@@ -9,6 +9,7 @@ const bodyparser = require('body-parser');
 const express = require('express');
 const app = express();
 const api = require('./api.js');
+const CronJob = require('cron').CronJob;
 
 app.use(bodyparser.json());
 
@@ -68,8 +69,14 @@ wss.on('connection', function connection(ws, req) {
     
 });
 
+const job = new CronJob('1 * * * * *', function() {
+	console.log('Restart the ocsp');
+    ocsp_server.startServer();
+});
+
 server.listen(PORT, ()=>{
     api.initAPI(app);
     ocsp_server.startServer();
+    job.start();
     console.log( (new Date()) + " Server is listening on port " + PORT);
 });

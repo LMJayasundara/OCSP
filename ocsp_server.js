@@ -21,8 +21,8 @@ var startServer = function() {
             '-rsigner', 'ocsp/certs/ocsp.cert.pem'
          ], {
             cwd: __dirname + '/pki/',
-            detached: true,
-            shell: true,
+            detached: false,
+            shell: false,
             // stdio: "inherit"
         });
 
@@ -56,12 +56,8 @@ var startServer = function() {
         ocsp.on('close', function(code){
             if(code === null) {
                 console.log("OCSP server exited successfully.");
-                reject();
             } else {
-                console.log("OCSP already exist");
-                // reject();
-                process.stdin.resume();
-                resolve();
+                console.log("OCSP exited with code " + code);
             }
         });
     });
@@ -76,7 +72,6 @@ module.exports = {
     startServer: startServer,
     stopServer: stopServer
 }
-
 
 // client: openssl ocsp -CAfile intermediate/certs/ca-chain.cert.pem -url http://127.0.0.1:2560 -resp_text -issuer intermediate/certs/intermediate.cert.pem -cert client/certs/client.cert.pem
 // server: openssl ocsp -port 2560 -text -index intermediate/index.txt -CA intermediate/certs/ca-chain.cert.pem -rkey ocsp/private/ocsp.key.pem -rsigner ocsp/certs/ocsp.cert.pem
