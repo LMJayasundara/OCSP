@@ -94,9 +94,9 @@ const initAPI = function(app) {
                 console.log('err', err);
             }
         });
-
-
     });
+
+    
 }
 
 module.exports = {

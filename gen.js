@@ -187,17 +187,22 @@ var createOCSPKeys = function() {
 
     return new Promise(function(resolve, reject) {
         // Create key
-        exec('openssl genrsa -aes256 -out private/ocsp.key.pem -passout pass:' + global.config.ca.ocsp.passphrase + ' 4096', {
+        // exec('openssl genrsa -aes256 -out private/ocsp.key.pem -passout pass:' + global.config.ca.ocsp.passphrase + ' 4096', {
+        exec('openssl genrsa -out private/ocsp.key.pem 4096', {
             cwd: pkidir + 'ocsp'
-        }, function() {
+        }, function(err) {
+            console.log("err1: ", err);
             // Create request
-            exec('openssl req -config openssl.cnf -new -sha256 -key private/ocsp.key.pem -passin pass:' + global.config.ca.ocsp.passphrase + ' -out csr/ocsp.csr.pem', {
+            // exec('openssl req -config openssl.cnf -new -sha256 -key private/ocsp.key.pem -passin pass:' + global.config.ca.ocsp.passphrase + ' -out csr/ocsp.csr.pem', {
+            exec('openssl req -config openssl.cnf -new -sha256 -key private/ocsp.key.pem -out csr/ocsp.csr.pem', {
                 cwd: pkidir + 'ocsp'
-            }, function() {
+            }, function(err) {
+                console.log("err2: ", err);
                 // Create certificate
                 exec('openssl ca -config openssl.cnf -extensions ocsp -days 3650 -notext -md sha256 -in csr/ocsp.csr.pem -out certs/ocsp.cert.pem -passin pass:' + global.config.ca.intermediate.passphrase + ' -batch', {
                     cwd: pkidir + 'ocsp'
-                }, function() {
+                }, function(err) {
+                    console.log("err3: ", err);
                     fs.removeSync(pkidir + 'ocsp/csr/ocsp.csr.pem');
                     resolve();
                 });

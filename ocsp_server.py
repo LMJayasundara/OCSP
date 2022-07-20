@@ -4,10 +4,11 @@ from typing import Optional
 from ocspbuilder import OCSPResponseBuilder
 from ocspresponder import OCSPResponder, CertificateStatus
 
-import monkeypatch
+# import monkeypatch
+from _pytest.monkeypatch import MonkeyPatch
 
-OCSPResponseBuilder.build = monkeypatch.build
-OCSPResponder.serve = monkeypatch.serve
+OCSPResponseBuilder.build = MonkeyPatch.build
+OCSPResponder.serve = MonkeyPatch.serve
 
 ISSUER_CERT = 'conf/issuer.crt'
 OCSP_CERT = 'conf/cert.pem'
