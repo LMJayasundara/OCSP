@@ -5,6 +5,7 @@ var fs = require('fs-extra');
 global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
 var ocsp = null;
 const password = "ocsppass";
+var kill = require('tree-kill');
 
 var startServer = function() {
     return new Promise(function(resolve, reject) {
@@ -18,10 +19,11 @@ var startServer = function() {
             '-index', 'intermediate/index.txt',
             '-CA', 'intermediate/certs/ca-chain.cert.pem',
             '-rkey', 'ocsp/private/ocsp.key.pem',
-            '-rsigner', 'ocsp/certs/ocsp.cert.pem'
+            '-rsigner', 'ocsp/certs/ocsp.cert.pem',
+            '-nmin', '1'
          ], {
             cwd: __dirname + '/pki/',
-            detached: true,
+            detached: false,
             shell: true,
             // stdio: "inherit"
         });
@@ -46,37 +48,27 @@ var startServer = function() {
 
         console.log(">>>>>> OCSP server is listening on " + global.config.ca.ocsp.ip + ':' + global.config.ca.ocsp.port + " <<<<<<");
 
-        resolve();
-
         ocsp.on('error', function(error) {
             console.log("OCSP server startup error: " + error);
             reject(error);
         });
 
-        ocsp.on('close', function(code){
-            if(code === null) {
-                console.log("OCSP server exited successfully.");
-                reject();
-            } else {
-                console.log("OCSP already exist");
-                // reject();
-                process.stdin.resume();
-                resolve();
-            }
-        });
+        // ocsp.on('close', function(code){
+        //     if(code === null) {
+        //         console.log("OCSP server exited successfully.");
+        //     } else {
+        //         console.log("OCSP exited with code " + code);
+        //         ocsp;
+        //     }
+        // });
+
+        resolve(ocsp);
     });
 };
 
-var stopServer = function() {
-    ocsp.kill('SIGHUP');
-    console.log("OCSP server stopped.");
-};
-
 module.exports = {
-    startServer: startServer,
-    stopServer: stopServer
+    startServer: startServer
 }
-
 
 // client: openssl ocsp -CAfile intermediate/certs/ca-chain.cert.pem -url http://127.0.0.1:2560 -resp_text -issuer intermediate/certs/intermediate.cert.pem -cert client/certs/client.cert.pem
 // server: openssl ocsp -port 2560 -text -index intermediate/index.txt -CA intermediate/certs/ca-chain.cert.pem -rkey ocsp/private/ocsp.key.pem -rsigner ocsp/certs/ocsp.cert.pem

@@ -445,3 +445,57 @@
 // });
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
+
+
+const path = require('path');
+const pkidir = path.resolve(__dirname + '/pki/').split(path.sep).join("/")+"/";
+certificates = new Array();
+
+var regex = /([R,E,V])(\t)(.*)(\t)(.*)(\t)([\dA-F]*)(\t)(unknown)(\t)(.*)/;
+
+var reindex = function() {
+    return new Promise(function(resolve, reject) {
+        console.log("Reindexing CertDB ...");
+
+        var lineReader = require('readline').createInterface({
+            input: require('fs').createReadStream(pkidir + 'intermediate/index.txt')
+        });
+
+        certificates = [];
+
+        lineReader.on('line', function (line) {
+            var columns = regex.exec(line);
+
+            if(columns !== null){
+                var certificate = {
+                    state:   columns[1],
+                    expirationtime:    columns[3],
+                    revocationtime:     columns[5],
+                    serial:     columns[7],
+                    subject:    columns[11]
+                };
+
+                certificates.push(certificate);
+            } else {
+                console.log("Error while parsing index.txt line :(");
+            }
+        });
+
+        lineReader.on('close', function() {
+            console.log("Reindexing finished");
+            resolve();
+        });
+    });
+}
+
+var result = new Array();
+var serial = '1007'
+
+reindex().then(function () {
+    certificates.forEach(certificate => {
+        if (certificate.serial == serial) {
+            result.push(certificate);
+        }
+    });
+    console.log(result);
+});
