@@ -1,25 +1,26 @@
-const fs = require('fs');
-const WebSocket = require('ws');
-const https = require('https');
-const ocsp = require('ocsp');
-const ocsp_server = require('./ocsp_server.js');
-const PORT = 8080;
+var fs = require('fs');
+var WebSocket = require('ws');
+var https = require('https');
+var ocsp = require('ocsp');
+var ocsp_server = require('./ocsp_server.js');
+var PORT = 8080;
 
-const bodyparser = require('body-parser');
-const express = require('express');
-const app = express();
-const api = require('./api.js');
-const spawn = require('child_process').spawn;
-const yaml = require('js-yaml');
-const kill = require('tree-kill');
+var bodyparser = require('body-parser');
+var express = require('express');
+var app = express();
+var api = require('./api.js');
+var spawn = require('child_process').spawn;
+var yaml = require('js-yaml');
+var kill = require('tree-kill');
 
 global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
 var reocsp = null;
 var ocspCache = new ocsp.Cache();
+// var agent = new ocsp.Agent();
 
 app.use(bodyparser.json());
 
-const server = new https.createServer({
+var server = new https.createServer({
     cert: fs.readFileSync(`${__dirname}/pki/server/certs/server.cert.pem`),
     key: fs.readFileSync(`${__dirname}/pki/server/private/server.key.pem`),
     ca: [
@@ -30,10 +31,12 @@ const server = new https.createServer({
     secureProtocol: 'TLS_method',
     ciphers: 'AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384',
     ecdhCurve: 'secp521r1:secp384r1',
-    honorCipherOrder: true
+    honorCipherOrder: true,
+    // requestOCSP: true
+    // agent: agent
 }, app);
 
-const wss = new WebSocket.Server({
+var wss = new WebSocket.Server({
     server,
     verifyClient: (info) => {
         // console.log(info.req.client);
@@ -43,29 +46,57 @@ const wss = new WebSocket.Server({
     }
 });
 
-wss.on('connection', function connection(ws, req, cb) {
+// ocsp.getOCSPURI(rawCert, function(err, uri) {
+//     if (err) return console.log(err);
+//     var req = ocsp.request.generate(rawCert, rawIssuer);
+//     var options = {
+//         url: uri,
+//         ocsp: req.data
+//     };
+//     ocspCache.request(req.id, options, null);
+
+//     // ocspCache.probe(req.id, function(err, cached) {
+//     //     if (err) console.log(err);
+//     //     if (cached !== false) console.log(cached.response);
+  
+//     //     var options = {
+//     //       url: uri,
+//     //       ocsp: req.data
+//     //     };
+  
+//     //     ocspCache.request(req.id, options);
+//     // });
+// });
+
+// // clear the Cache manually
+// var cacheIds = Object.keys(ocspCache.cache)
+// cacheIds.forEach(cacheId => {
+//     clearInterval(ocspCache.cache[cacheId].timer)
+// });
+
+wss.on('connection', function connection(ws, req) {
 
     // console.log(req.connection.remoteAddress);
     // console.log(req.socket.getPeerCertificate().subject.CN);
     // console.log(req.method);
     // console.log(req.url);
-    console.log(ocspCache);
-    
-    const cert = req.socket.getPeerCertificate(true);
-    const rawCert = cert.raw;
-    const rawIssuer = cert.issuerCertificate.raw;
+
+    var cert = req.socket.getPeerCertificate(true);
+    var rawCert = cert.raw;
+    var rawIssuer = cert.issuerCertificate.raw;
 
     ocsp.getOCSPURI(rawCert, function(err, uri) {
-        if (err) return cb(error);
+        if (err) console.log(err);
         var req = ocsp.request.generate(rawCert, rawIssuer);
         var options = {
             url: uri,
             ocsp: req.data
         };
-        ocspCache.request(req.id, options, cb);
+        ocspCache.request(req.id, options, null);
     });
 
     ws.on('message', function incoming(message) {
+        console.log(ocspCache.cache);
         ocsp.check({cert: rawCert, issuer: rawIssuer}, function(err, res) {
             if(err) {
                 console.log(err.message);
@@ -82,25 +113,38 @@ wss.on('connection', function connection(ws, req, cb) {
             }                              
         });
     });
-    
 });
 
-// Omit
-var sslSessionCache = {};
-server.on('newSession', function(sessionId, sessionData, callback) {
-    sslSessionCache[sessionId] = sessionData;
-    callback();
-});
+// server.on('OCSPRequest', function(cert, issuer, callback) {
+//     console.log('OCSPRequest');
+//     ocsp.getOCSPURI(cert, function(err, uri) {
+//         if (err) return callback(error);
+//         var req = ocsp.request.generate(cert, issuer);
+//         var options = {
+//             url: uri,
+//             ocsp: req.data
+//         };
+//         ocspCache.request(req.id, options, callback);
+//     });
+// });
 
-server.on('resumeSession', function (sessionId, callback) {
-    callback(null, sslSessionCache[sessionId]);
-});
+// // Omit
+// var sslSessionCache = {};
+// server.on('newSession', function(sessionId, sessionData, callback) {
+//     sslSessionCache[sessionId] = sessionData;
+//     callback();
+// });
+
+// server.on('resumeSession', function (sessionId, callback) {
+//     console.log(ocspCache);
+//     callback(null, sslSessionCache[sessionId]);
+// });
 
 server.listen(PORT, ()=>{
     api.initAPI(app);
     ocsp_server.startServer().then(function (cbocsp) {
         // var ocsprenewint = 1000 * 60 * 60 * 24; // 24h
-        const ocsprenewint = 1000 * 60; // 1min
+        var ocsprenewint = 1000 * 60; // 1min
         reocsp = cbocsp;
 
         setInterval(() => {

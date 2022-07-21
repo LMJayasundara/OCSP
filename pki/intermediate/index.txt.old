@@ -8,4 +8,5 @@ R	230720081710Z	220720100948Z	1006	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=s
 R	230720082103Z	220720100157Z	1007	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=shanp/emailAddress=shanp@email.com
 R	230720101409Z	220720101717Z	1008	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=shanq/emailAddress=shanq@email.com
 R	230720102402Z	220720110813Z	1009	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=shanr/emailAddress=shanr@email.com
-V	230721034431Z		100A	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=shana/emailAddress=shana@email.com
+R	230721034431Z	220721034544Z	100A	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=shana/emailAddress=shana@email.com
+V	230721041032Z		100B	unknown	/C=LK/ST=WEST/L=COL/O=VEGA/OU=CG/CN=shanb/emailAddress=shanb@email.com
