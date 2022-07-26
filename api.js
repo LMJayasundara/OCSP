@@ -152,6 +152,47 @@ var getPair = function(username) {
     });
 };
 
+var deluserdb = function(username){
+    return new Promise(function(resolve, reject) {
+        fs.readFile(DB_FILE_PATH, {encoding: 'utf-8'}, function(err, data) {
+            if (err) resolve(false);
+        
+            let dataArray = data.split('\n');
+            const searchKeyword = username;
+            let lastIndex = -1;
+        
+            for (let index=0; index<dataArray.length; index++) {
+                if (dataArray[index].includes(searchKeyword)) {
+                    lastIndex = index;
+                    break; 
+                }
+            };
+        
+            dataArray.splice(lastIndex, 1);
+            const updatedData = dataArray.join('\n');
+            fs.writeFile(DB_FILE_PATH, updatedData, (err) => {
+                if (err) resolve(false);
+                resolve(true);
+            });
+        });
+    });
+};
+
+var updatepass = function(username, newpass){
+    return new Promise(function(resolve, reject) {
+        deluserdb(username).then(function(ack){
+            if(ack){
+                addUser(username, newpass).then(function(ack){
+                    resolve(ack);
+                });
+            }
+            else{
+                resolve(false);
+            }
+        });
+    });
+};
+
 /////////////////////////////////////////////////////// Init APIs ///////////////////////////////////////////////////////
 
 const initAPI = function(app) {
@@ -160,7 +201,6 @@ const initAPI = function(app) {
         console.log("Admin is requesting to create a new user:", req.body.name);
 
         addUser(req.body.name, req.body.passwd).then(function(ack){
-            console.log(ack);
             if(ack == true){
                 createUserKey(req.body.name).then((msg) =>{
                     result = msg[0]
@@ -198,23 +238,23 @@ const initAPI = function(app) {
         });
     });
 
-    // app.post(apipath + '/auth/', function(req, res) {
-    //     console.log("Admin is requesting auth user " + req.body.username);
+    app.post(apipath + '/auth/', function(req, res) {
+        console.log("Admin is requesting auth user " + req.body.username);
 
-    //     var hash = crypto.createHash('sha256').update(req.body.username + ':' + req.body.passwd).digest('hex');
-    //     checkUser(hash).then(function(ack){
-    //         if(ack == true){
-    //             res.json({
-    //                 success: "true"
-    //             });
-    //         }
-    //         else{
-    //             res.json({
-    //                 success: "false"
-    //             });
-    //         }
-    //     });
-    // });
+        var hash = crypto.createHash('sha256').update(req.body.username + ':' + req.body.passwd).digest('hex');
+        checkUser(hash).then(function(ack){
+            if(ack == true){
+                res.json({
+                    success: "true"
+                });
+            }
+            else{
+                res.json({
+                    success: "false"
+                });
+            }
+        });
+    });
 
     app.post(apipath + '/getPair/', function(req, res) {
         console.log("Admin is requesting key pairs of client " + req.params.name);
@@ -226,6 +266,26 @@ const initAPI = function(app) {
                     res.json({
                         success: "true",
                         result: ack
+                    });
+                });
+            }
+            else{
+                res.json({
+                    success: "Auth fail"
+                });
+            }
+        });
+    });
+
+    app.post(apipath + '/updatepass/', function(req, res) {
+        console.log("Admin is requesting to update Basic auth password of client " + req.body.username);
+
+        var hash = crypto.createHash('sha256').update(req.body.username + ':' + req.body.passwd).digest('hex');
+        checkUser(hash).then(function(ack){
+            if(ack == true){
+                updatepass(req.body.username, req.body.newpasswd).then(function(ack){
+                    res.json({
+                        success: ack
                     });
                 });
             }

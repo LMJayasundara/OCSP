@@ -23,6 +23,7 @@
     "js-yaml": "^4.1.0",
     "nodemon": "^2.0.19",
     "ocsp": "^1.2.0",
+    "replace-in-file": "^6.3.5",
     "suspend": "^0.7.0",
     "tree-kill": "^1.2.2",
     "ws": "^8.8.0"

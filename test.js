@@ -446,56 +446,102 @@
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
 
+// const path = require('path');
+// const pkidir = path.resolve(__dirname + '/pki/').split(path.sep).join("/")+"/";
+// certificates = new Array();
 
-const path = require('path');
-const pkidir = path.resolve(__dirname + '/pki/').split(path.sep).join("/")+"/";
-certificates = new Array();
+// var regex = /([R,E,V])(\t)(.*)(\t)(.*)(\t)([\dA-F]*)(\t)(unknown)(\t)(.*)/;
 
-var regex = /([R,E,V])(\t)(.*)(\t)(.*)(\t)([\dA-F]*)(\t)(unknown)(\t)(.*)/;
+// var reindex = function() {
+//     return new Promise(function(resolve, reject) {
+//         console.log("Reindexing CertDB ...");
 
-var reindex = function() {
-    return new Promise(function(resolve, reject) {
-        console.log("Reindexing CertDB ...");
+//         var lineReader = require('readline').createInterface({
+//             input: require('fs').createReadStream(pkidir + 'intermediate/index.txt')
+//         });
 
-        var lineReader = require('readline').createInterface({
-            input: require('fs').createReadStream(pkidir + 'intermediate/index.txt')
-        });
+//         certificates = [];
 
-        certificates = [];
+//         lineReader.on('line', function (line) {
+//             var columns = regex.exec(line);
 
-        lineReader.on('line', function (line) {
-            var columns = regex.exec(line);
+//             if(columns !== null){
+//                 var certificate = {
+//                     state:   columns[1],
+//                     expirationtime:    columns[3],
+//                     revocationtime:     columns[5],
+//                     serial:     columns[7],
+//                     subject:    columns[11]
+//                 };
 
-            if(columns !== null){
-                var certificate = {
-                    state:   columns[1],
-                    expirationtime:    columns[3],
-                    revocationtime:     columns[5],
-                    serial:     columns[7],
-                    subject:    columns[11]
-                };
+//                 certificates.push(certificate);
+//             } else {
+//                 console.log("Error while parsing index.txt line :(");
+//             }
+//         });
 
-                certificates.push(certificate);
-            } else {
-                console.log("Error while parsing index.txt line :(");
-            }
-        });
+//         lineReader.on('close', function() {
+//             console.log("Reindexing finished");
+//             resolve();
+//         });
+//     });
+// }
 
-        lineReader.on('close', function() {
-            console.log("Reindexing finished");
-            resolve();
-        });
-    });
-}
+// var result = new Array();
+// var serial = '1007'
 
-var result = new Array();
-var serial = '1007'
+// reindex().then(function () {
+//     certificates.forEach(certificate => {
+//         if (certificate.serial == serial) {
+//             result.push(certificate);
+//         }
+//     });
+//     console.log(result);
+// });
 
-reindex().then(function () {
-    certificates.forEach(certificate => {
-        if (certificate.serial == serial) {
-            result.push(certificate);
+////////////////////////////////////////////////////////////////////////////////////////
+
+// const replace = require('replace-in-file');
+// const options = {
+//   files: './user.db',
+//   from: "sss",
+//   to: 'ttt',
+// };
+
+// replace(options)
+//   .then(results => {
+//     console.log('Replacement results:', results);
+//   })
+//   .catch(error => {
+//     console.error('Error occurred:', error);
+//   });
+
+////////////////////////////////////////////////////////////////////////////////////////////
+
+var fs = require('fs')
+fs.readFile('user.db', {encoding: 'utf-8'}, function(err, data) {
+    if (err) throw error;
+
+    let dataArray = data.split('\n'); // convert file data in an array
+    const searchKeyword = 'ttt'; // we are looking for a line, contains, key word 'user1' in the file
+    let lastIndex = -1; // let say, we have not found the keyword
+
+    for (let index=0; index<dataArray.length; index++) {
+        if (dataArray[index].includes(searchKeyword)) { // check if a line contains the 'user1' keyword
+            lastIndex = index; // found a line includes a 'user1' keyword
+            break; 
         }
+    }
+
+    dataArray.splice(lastIndex, 1); // remove the keyword 'user1' from the data Array
+
+    // UPDATE FILE WITH NEW DATA
+    // IN CASE YOU WANT TO UPDATE THE CONTENT IN YOUR FILE
+    // THIS WILL REMOVE THE LINE CONTAINS 'user1' IN YOUR shuffle.txt FILE
+    const updatedData = dataArray.join('\n');
+    fs.writeFile('user.db', updatedData, (err) => {
+        if (err) throw err;
+        console.log ('Successfully updated the file data');
     });
-    console.log(result);
+
 });
