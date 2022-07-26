@@ -134,6 +134,24 @@ const checkUser = function(hash) {
     });
 };
 
+var getPair = function(username) {
+    return new Promise(function(resolve, reject) {
+        userExists(username).then(function(found){
+            if (!found) {
+                resolve('Unknown user');
+            }
+            const userDirPath = path.join(pkidir, username);
+            const key =  fs.readFileSync(path.join(userDirPath, 'private/client.key.pem'), 'utf8');
+            const cert = fs.readFileSync(path.join(userDirPath, 'certs/client.cert.pem'), 'utf8');
+
+            resolve ({
+                key: key,
+                cert: cert
+            });
+        });
+    });
+};
+
 /////////////////////////////////////////////////////// Init APIs ///////////////////////////////////////////////////////
 
 const initAPI = function(app) {
@@ -180,19 +198,40 @@ const initAPI = function(app) {
         });
     });
 
-    app.post(apipath + '/auth/', function(req, res) {
-        console.log("Admin is requesting auth user " + req.body.username);
+    // app.post(apipath + '/auth/', function(req, res) {
+    //     console.log("Admin is requesting auth user " + req.body.username);
+
+    //     var hash = crypto.createHash('sha256').update(req.body.username + ':' + req.body.passwd).digest('hex');
+    //     checkUser(hash).then(function(ack){
+    //         if(ack == true){
+    //             res.json({
+    //                 success: "true"
+    //             });
+    //         }
+    //         else{
+    //             res.json({
+    //                 success: "false"
+    //             });
+    //         }
+    //     });
+    // });
+
+    app.post(apipath + '/getPair/', function(req, res) {
+        console.log("Admin is requesting key pairs of client " + req.params.name);
 
         var hash = crypto.createHash('sha256').update(req.body.username + ':' + req.body.passwd).digest('hex');
         checkUser(hash).then(function(ack){
             if(ack == true){
-                res.json({
-                    success: "true"
+                getPair(req.body.username).then(function(ack){
+                    res.json({
+                        success: "true",
+                        result: ack
+                    });
                 });
             }
             else{
                 res.json({
-                    success: "false"
+                    success: "Auth fail"
                 });
             }
         });
