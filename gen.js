@@ -236,29 +236,31 @@ var createServer = function() {
 };
 
 var createClient = function() {
-    console.log(">>> Creating Client certificates");
+    console.log(">>> Creating Admin Keys")
 
     return new Promise(function(resolve, reject) {
         // Create key
-        exec('openssl genrsa -out private/client.key.pem 4096', {
+        exec('openssl genrsa -aes256 -out private/admin.key.pem -passout pass:' + global.config.ca.admin.passphrase + ' 4096', {
             cwd: pkidir + 'admin'
-        }, function() {
+        }, function(err) {
+            console.log("err1: ", err);
             // Create request
-            exec('openssl req -config openssl.cnf -new -sha256 -key private/client.key.pem -out csr/client.csr.pem', {
+            exec('openssl req -config openssl.cnf -new -sha256 -key private/admin.key.pem -passin pass:' + global.config.ca.admin.passphrase + ' -out csr/admin.csr.pem', {
                 cwd: pkidir + 'admin'
-            }, function() {
+            }, function(err) {
+                console.log("err2: ", err);
                 // Create certificate
-                exec('openssl ca -config openssl.cnf -extensions usr_cert -days 365 -notext -md sha256 -in csr/client.csr.pem -out certs/client.cert.pem -passin pass:' + global.config.ca.intermediate.passphrase + ' -batch', {
+                exec('openssl ca -config openssl.cnf -extensions usr_cert -days 3650 -notext -md sha256 -in csr/admin.csr.pem -out certs/admin.cert.pem -passin pass:' + global.config.ca.intermediate.passphrase + ' -batch', {
                     cwd: pkidir + 'admin'
                 }, function(err) {
-                    console.log(err);
-                    fs.removeSync(pkidir + 'admin/csr/client.csr.pem');
+                    console.log("err3: ", err);
+                    fs.removeSync(pkidir + 'admin/csr/admin.csr.pem');
                     resolve();
                 });
             });
         });
     });
-};
+}
 
 // var setFilePerms = function() {
 //     console.log(">>> Setting file permissions")

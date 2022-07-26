@@ -49,6 +49,7 @@ ca:
       rootname: 'intermediate'
       chainname: 'ca-chain'
       name: 'admin'
+      passphrase: 'adminpass'
       days: 365
       country: 'LK'
       state: 'WEST'

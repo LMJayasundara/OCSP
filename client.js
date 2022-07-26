@@ -5,8 +5,8 @@ const fs = require('fs');
 // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const ws = new WebSocket('wss://localhost:8080',{
-  key: fs.readFileSync(`${__dirname}/pki/shanb/private/client.key.pem`),
-  cert: fs.readFileSync(`${__dirname}/pki/shanb/certs/client.cert.pem`),
+  key: fs.readFileSync(`${__dirname}/pki/shan/private/client.key.pem`),
+  cert: fs.readFileSync(`${__dirname}/pki/shan/certs/client.cert.pem`),
 
   // To enable security option 2, comment out the ca certificate and change the rejectUnauthorized: false
   ca: [

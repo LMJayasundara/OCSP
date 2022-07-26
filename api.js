@@ -7,14 +7,15 @@ const suspend = require('suspend');
 var yaml = require('js-yaml');
 global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
 
-var createUserKey = function(username, passWord) {
+const DB_FILE_PATH = path.join(pkidir, 'db', 'user.db');
+const crypto = require('crypto');
+
+var createUserKey = function(username) {
     console.log(">>> Creating a User");
     fs.ensureDirSync(pkidir + username);
     fs.ensureDirSync(pkidir + username +'/certs');
     fs.ensureDirSync(pkidir + username +'/private');
     fs.ensureDirSync(pkidir + username +'/csr');
-    // openssl_client_cnf = fs.readFileSync(__dirname + '/cnf/client.cnf', 'utf8');
-    // fs.writeFileSync(pkidir + username +'/openssl.cnf', openssl_client_cnf);
 
     openssl_client = fs.readFileSync(__dirname + '/template/openssl_client.cnf.tpl', 'utf8');
     openssl_client = openssl_client.replace(/{basedir}/g, pkidir + 'intermediate');
@@ -55,48 +56,148 @@ var createUserKey = function(username, passWord) {
     });
 };
 
-function* serialRevoke(serial, passphrase, username) {
-    console.log('>>>>>>>>>> Revoke serial ', serial);
-    const revokation = yield revokeCertificate(serial, passphrase, username);
-    return revokation;
-}
-
-
-function revokeCertificate(serialNumber, passphrase, username) {
-    exec('openssl ca -config openssl.cnf -revoke ./newcerts/' + serialNumber.toString() + '.pem -passin pass:' + passphrase, {
-        cwd: pkidir + "intermediate"
-    }, function(err, stdout, stderr) {
-        console.log(err);
+const addUser = function(username, password) {
+    return new Promise(function(resolve, reject) {
+        // Make sure DB file exists ...
+        fs.ensureFileSync(DB_FILE_PATH);
+        // Calc passhash
+        const passhash = crypto.createHash('sha256').update(username + ':' + password).digest('hex');
+        // Read existing file
+        let passfile = fs.readFileSync(DB_FILE_PATH, 'utf8');
+        // Check if user alreadys exists
+        userExists(username).then(function(found){
+            if (found === false) {
+                // Update file
+                passfile = passfile + username + ':' + passhash +'\n';
+                fs.writeFileSync(DB_FILE_PATH, passfile, 'utf8');
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        });
     });
-}
+};
+
+const userExists = function(username) {
+    return new Promise(function(resolve, reject) {
+        // Read existing file
+        const passfile = fs.readFileSync(DB_FILE_PATH, 'utf8');
+        // Check if user alreadys exists
+        const lines = passfile.split('\n');
+        let found = false;
+        lines.forEach(function(line) {
+            const line_username = line.split(':')[0];
+            if (line_username === username) {
+                found = true;
+            }
+        });
+        resolve(found);
+    });    
+};
+
+var serialRevoke = function(serial) {
+    return new Promise(function(resolve, reject) {
+        console.log('>>>>>>>>>> Revoke serial ', serial);
+        revokeCertificate(serial).then(function(revokation){
+            resolve(revokation);
+        });
+    });
+};
+
+var revokeCertificate = function(serialNumber) {
+    return new Promise(function(resolve, reject) {
+        exec('openssl ca -config openssl.cnf -revoke ./newcerts/' + serialNumber.toString() + '.pem -passin pass:' + global.config.ca.intermediate.passphrase, {
+            cwd: pkidir + "intermediate"
+        }, function(err, stdout, stderr) {
+            resolve(err, stdout, stderr);
+        });
+    });
+};
+
+const checkUser = function(hash) {
+    return new Promise(function(resolve, reject) {
+        fs.readFile(DB_FILE_PATH, 'utf8', function(err, passFile) {
+            if (err) {
+                console.log(err);
+                resolve(false);
+            } else {
+                const lines = passFile.split('\n');
+
+                lines.forEach(function(line) {
+                    if (line.split(':')[1] === hash) {
+                        resolve(true);
+                    }
+                });
+            }
+            resolve(false);
+        });
+    });
+};
+
+/////////////////////////////////////////////////////// Init APIs ///////////////////////////////////////////////////////
 
 const initAPI = function(app) {
+
     app.post(apipath + '/user/', function(req, res) {
         console.log("Admin is requesting to create a new user:", req.body.name);
-        createUserKey(req.body.name, req.body.passwd).then((msg) =>{
-            // console.log(msg);
-            result = msg[0]
-            res.json({
-                success: msg[1],
-                result
-            });
-        });
+
+        addUser(req.body.name, req.body.passwd).then(function(ack){
+            console.log(ack);
+            if(ack == true){
+                createUserKey(req.body.name).then((msg) =>{
+                    result = msg[0]
+                    res.json({
+                        success: msg[1],
+                        result
+                    });
+                });
+            }
+            else{
+                res.json({
+                    success: "false",
+                    result: "Client ID already exist"
+                });
+            }
+        });    
     });
 
     app.post(apipath + '/revoke/', function(req, res) {
         console.log("Admin is requesting revokation of serial " + req.body.serial);
 
-        suspend.run(function*() {
-            return yield* serialRevoke(req.body.serial, req.body.passphrase, req.body.username);
-    
-        }, function(err, result) {
-            if (err) {
-                console.log('err', err);
+        serialRevoke(req.body.serial).then(function(err, stdout, stderr){
+            if(err == null){
+                res.json({
+                    success: "true",
+                    err: err
+                });
+            }
+            else{
+                res.json({
+                    success: "false",
+                    err: err.message
+                });
             }
         });
     });
 
-    
+    app.post(apipath + '/auth/', function(req, res) {
+        console.log("Admin is requesting auth user " + req.body.username);
+
+        var hash = crypto.createHash('sha256').update(req.body.username + ':' + req.body.passwd).digest('hex');
+        checkUser(hash).then(function(ack){
+            if(ack == true){
+                res.json({
+                    success: "true"
+                });
+            }
+            else{
+                res.json({
+                    success: "false"
+                });
+            }
+        });
+    });
+
 }
 
 module.exports = {

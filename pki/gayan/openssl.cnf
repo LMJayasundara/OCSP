@@ -61,8 +61,8 @@ stateOrProvinceName             = WEST
 localityName                    = COL
 0.organizationName              = VEGA
 organizationalUnitName          = CG
-commonName                      = shany
-emailAddress                    = shany@email.com
+commonName                      = gayan
+emailAddress                    = gayan@email.com
 
 [ v3_ca ]
 subjectKeyIdentifier = hash
