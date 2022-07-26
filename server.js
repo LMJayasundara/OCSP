@@ -1,25 +1,26 @@
-const fs = require('fs');
-const WebSocket = require('ws');
-const https = require('https');
-const ocsp = require('ocsp');
-const ocsp_server = require('./ocsp_server.js');
-const PORT = 8080;
+var fs = require('fs');
+var WebSocket = require('ws');
+var https = require('https');
+var ocsp = require('ocsp');
+var ocsp_server = require('./ocsp_server.js');
+var PORT = 8080;
 
-const bodyparser = require('body-parser');
-const express = require('express');
-const app = express();
-const api = require('./api.js');
-const { json } = require('body-parser');
-const CronJob = require('cron').CronJob;
+var bodyparser = require('body-parser');
+var express = require('express');
+var app = express();
+var api = require('./api.js');
 var spawn = require('child_process').spawn;
 var yaml = require('js-yaml');
-global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
+var kill = require('tree-kill');
 
+global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
+var reocsp = null;
 var ocspCache = new ocsp.Cache();
+// var agent = new ocsp.Agent();
 
 app.use(bodyparser.json());
 
-const server = new https.createServer({
+var server = new https.createServer({
     cert: fs.readFileSync(`${__dirname}/pki/server/certs/server.cert.pem`),
     key: fs.readFileSync(`${__dirname}/pki/server/private/server.key.pem`),
     ca: [
@@ -30,11 +31,12 @@ const server = new https.createServer({
     secureProtocol: 'TLS_method',
     ciphers: 'AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384',
     ecdhCurve: 'secp521r1:secp384r1',
-    honorCipherOrder: true
-    // nextUpdate: 1e3, //24 * 3600 * 1e3
+    honorCipherOrder: true,
+    // requestOCSP: true
+    // agent: agent
 }, app);
 
-const wss = new WebSocket.Server({
+var wss = new WebSocket.Server({
     server,
     verifyClient: (info) => {
         // console.log(info.req.client);
@@ -44,30 +46,57 @@ const wss = new WebSocket.Server({
     }
 });
 
-wss.on('connection', function connection(ws, req, cb) {
+// ocsp.getOCSPURI(rawCert, function(err, uri) {
+//     if (err) return console.log(err);
+//     var req = ocsp.request.generate(rawCert, rawIssuer);
+//     var options = {
+//         url: uri,
+//         ocsp: req.data
+//     };
+//     ocspCache.request(req.id, options, null);
+
+//     // ocspCache.probe(req.id, function(err, cached) {
+//     //     if (err) console.log(err);
+//     //     if (cached !== false) console.log(cached.response);
+  
+//     //     var options = {
+//     //       url: uri,
+//     //       ocsp: req.data
+//     //     };
+  
+//     //     ocspCache.request(req.id, options);
+//     // });
+// });
+
+// // clear the Cache manually
+// var cacheIds = Object.keys(ocspCache.cache)
+// cacheIds.forEach(cacheId => {
+//     clearInterval(ocspCache.cache[cacheId].timer)
+// });
+
+wss.on('connection', function connection(ws, req) {
 
     // console.log(req.connection.remoteAddress);
     // console.log(req.socket.getPeerCertificate().subject.CN);
     // console.log(req.method);
     // console.log(req.url);
-    // console.log(ocspCache);
-    
-    const cert = req.socket.getPeerCertificate(true);
-    const rawCert = cert.raw;
-    const rawIssuer = cert.issuerCertificate.raw;
+
+    var cert = req.socket.getPeerCertificate(true);
+    var rawCert = cert.raw;
+    var rawIssuer = cert.issuerCertificate.raw;
 
     ocsp.getOCSPURI(rawCert, function(err, uri) {
-        if (err) return cb(error);
+        if (err) console.log(err);
         var req = ocsp.request.generate(rawCert, rawIssuer);
         var options = {
             url: uri,
             ocsp: req.data
         };
-        // console.log(options);
-        ocspCache.request(req.id, options, cb);
+        ocspCache.request(req.id, options, null);
     });
 
     ws.on('message', function incoming(message) {
+        console.log(ocspCache.cache);
         ocsp.check({cert: rawCert, issuer: rawIssuer}, function(err, res) {
             if(err) {
                 console.log(err.message);
@@ -84,46 +113,49 @@ wss.on('connection', function connection(ws, req, cb) {
             }                              
         });
     });
-    
 });
 
-// const job = new CronJob('1 * * * * *', function() {
-// 	console.log('Restart the ocsp');
-//     ocsp_server.startServer();
+// server.on('OCSPRequest', function(cert, issuer, callback) {
+//     console.log('OCSPRequest');
+//     ocsp.getOCSPURI(cert, function(err, uri) {
+//         if (err) return callback(error);
+//         var req = ocsp.request.generate(cert, issuer);
+//         var options = {
+//             url: uri,
+//             ocsp: req.data
+//         };
+//         ocspCache.request(req.id, options, callback);
+//     });
 // });
 
-// omit
-var sslSessionCache = {};
-server.on('newSession', function(sessionId, sessionData, callback) {
-    // console.log('newSession: ', sessionId);
-    sslSessionCache[sessionId] = sessionData;
-    callback();
-});
+// // Omit
+// var sslSessionCache = {};
+// server.on('newSession', function(sessionId, sessionData, callback) {
+//     sslSessionCache[sessionId] = sessionData;
+//     callback();
+// });
 
-server.on('resumeSession', function (sessionId, callback) {
-    // console.log('resumeSession: ', sessionId);
-    callback(null, sslSessionCache[sessionId]);
-});
-
-var kill = require('tree-kill');
-var yyy = null;
+// server.on('resumeSession', function (sessionId, callback) {
+//     console.log(ocspCache);
+//     callback(null, sslSessionCache[sessionId]);
+// });
 
 server.listen(PORT, ()=>{
     api.initAPI(app);
-    ocsp_server.startServer().then(function (xxx) {
+    ocsp_server.startServer().then(function (cbocsp) {
         // var ocsprenewint = 1000 * 60 * 60 * 24; // 24h
-        var ocsprenewint = 1000 * 10; // 1min
+        var ocsprenewint = 1000 * 60; // 1min
+        reocsp = cbocsp;
 
         setInterval(() => {
-            yyy = xxx;
-            kill(xxx.pid, 'SIGKILL', function(err) {
+            kill(cbocsp.pid, 'SIGKILL', function(err) {
                 if(err){
                     console.log(err.message);
                     process.exit();
                 }
                 else{
                     console.log("Restart the ocsp server..");
-                    xxx = spawn('openssl', [
+                    cbocsp = spawn('openssl', [
                         'ocsp',
                         '-port', global.config.ca.ocsp.port,
                         '-text',
@@ -134,51 +166,41 @@ server.listen(PORT, ()=>{
                         '-nmin', '1'
                      ], {
                         cwd: __dirname + '/pki/',
-                        detached: false,
-                        shell: true,
-                        // stdio: "inherit"
+                        detached: true,
+                        shell: true
                     });
         
-                    xxx.on('error', function(error) {
+                    cbocsp.on('error', function(error) {
                         console.log("OCSP server startup error: " + error);
                         reject(error);
                     });
 
-                    // xxx.on('close', function(code){
-                    //     if(code === null) {
-                    //         console.log("OCSP server exited successfully.");
-                    //     } else {
-                    //         console.log("OCSP exited with code " + code);
-                    //     }
-                    // });
-        
+                    reocsp = cbocsp;
                 }
             });
 
-        }, 3000);
+        }, ocsprenewint);
 
     })
     .catch(function(error){
         console.log("Could not start OCSP server: " + error);
     });
 
-    // job.start();
     console.log( (new Date()) + " Server is listening on port " + PORT);
 });
-
 
 // Server stop routine and events
 var stopServer = function() {
     console.log("Received termination signal.");
-    console.log("Stopping OCSP server ...");
-    kill(yyy.pid, 'SIGKILL', function(err) {
+    console.log("Stopping OCSP server...");
+    kill(reocsp.pid, 'SIGKILL', function(err) {
         if(err){
             console.log(err.message);
         }
         else{
             console.log("Server stoped!");
-            process.exit();
         }
+        process.exit();
     });
 };
 
