@@ -5,7 +5,6 @@ var yaml = require('js-yaml');
 var exec = require('child_process').exec;
 var path = require('path');
 
-// const pkidir = __dirname + '/pki/';
 const pkidir = path.resolve(__dirname + '/pki/').split(path.sep).join("/")+"/";
 global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
 
@@ -44,8 +43,6 @@ var createFileStructure = function() {
         fs.ensureDirSync(pkidir + 'intermediate/crl');
         fs.writeFileSync(pkidir + 'intermediate/index.txt', '', 'utf8');
         fs.writeFileSync(pkidir + 'intermediate/serial', '1000', 'utf8');
-        // openssl_intermediate_cnf = fs.readFileSync(__dirname + '/cnf/intermediateCA.cnf', 'utf8');
-        // fs.writeFileSync(pkidir + 'intermediate/openssl.cnf', openssl_intermediate_cnf);
 
         openssl_intermediate = fs.readFileSync(__dirname + '/template/openssl_intermediate.cnf.tpl', 'utf8');
         openssl_intermediate = openssl_intermediate.replace(/{basedir}/g, pkidir + 'intermediate');
@@ -65,8 +62,6 @@ var createFileStructure = function() {
         fs.ensureDirSync(pkidir + 'ocsp/certs');
         fs.ensureDirSync(pkidir + 'ocsp/private');
         fs.ensureDirSync(pkidir + 'ocsp/csr');
-        // openssl_ocsp_cnf = fs.readFileSync(__dirname + '/cnf/ocsp.cnf', 'utf8');
-        // fs.writeFileSync(pkidir + 'ocsp/openssl.cnf', openssl_ocsp_cnf);
 
         openssl_ocsp = fs.readFileSync(__dirname + '/template/openssl_ocsp.cnf.tpl', 'utf8');
         openssl_ocsp = openssl_ocsp.replace(/{basedir}/g, pkidir + 'intermediate');
@@ -87,8 +82,6 @@ var createFileStructure = function() {
         fs.ensureDirSync(pkidir + 'server/certs');
         fs.ensureDirSync(pkidir + 'server/private');
         fs.ensureDirSync(pkidir + 'server/csr');
-        // openssl_server_cnf = fs.readFileSync(__dirname + '/cnf/server.cnf', 'utf8');
-        // fs.writeFileSync(pkidir + 'server/openssl.cnf', openssl_server_cnf);
 
         openssl_server = fs.readFileSync(__dirname + '/template/openssl_server.cnf.tpl', 'utf8');
         openssl_server = openssl_server.replace(/{basedir}/g, pkidir + 'intermediate');
@@ -109,8 +102,6 @@ var createFileStructure = function() {
         fs.ensureDirSync(pkidir + 'admin/certs');
         fs.ensureDirSync(pkidir + 'admin/private');
         fs.ensureDirSync(pkidir + 'admin/csr');
-        // openssl_client_cnf = fs.readFileSync(__dirname + '/cnf/client.cnf', 'utf8');
-        // fs.writeFileSync(pkidir + 'client/openssl.cnf', openssl_client_cnf);
 
         openssl_client = fs.readFileSync(__dirname + '/template/openssl_client.cnf.tpl', 'utf8');
         openssl_client = openssl_client.replace(/{basedir}/g, pkidir + 'intermediate');
@@ -187,13 +178,11 @@ var createOCSPKeys = function() {
 
     return new Promise(function(resolve, reject) {
         // Create key
-        // exec('openssl genrsa -aes256 -out private/ocsp.key.pem -passout pass:' + global.config.ca.ocsp.passphrase + ' 4096', {
         exec('openssl genrsa -out private/ocsp.key.pem 4096', {
             cwd: pkidir + 'ocsp'
         }, function(err) {
             console.log("err1: ", err);
             // Create request
-            // exec('openssl req -config openssl.cnf -new -sha256 -key private/ocsp.key.pem -passin pass:' + global.config.ca.ocsp.passphrase + ' -out csr/ocsp.csr.pem', {
             exec('openssl req -config openssl.cnf -new -sha256 -key private/ocsp.key.pem -out csr/ocsp.csr.pem', {
                 cwd: pkidir + 'ocsp'
             }, function(err) {
