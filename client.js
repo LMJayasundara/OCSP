@@ -1,9 +1,6 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 
-// In order to handle self-signed certificates
-// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 const ws = new WebSocket('wss://localhost:8080',{
   key: fs.readFileSync(`${__dirname}/pki/shan/private/client.key.pem`),
   cert: fs.readFileSync(`${__dirname}/pki/shan/certs/client.cert.pem`),

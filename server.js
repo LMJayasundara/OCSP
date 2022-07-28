@@ -16,7 +16,6 @@ var kill = require('tree-kill');
 global.config = yaml.load(fs.readFileSync('config/config.yml', 'utf8'));
 var reocsp = null;
 var ocspCache = new ocsp.Cache();
-// var agent = new ocsp.Agent();
 
 app.use(bodyparser.json());
 
@@ -33,7 +32,6 @@ var server = new https.createServer({
     ecdhCurve: 'secp521r1:secp384r1',
     honorCipherOrder: true,
     // requestOCSP: true
-    // agent: agent
 }, app);
 
 var wss = new WebSocket.Server({
@@ -46,36 +44,7 @@ var wss = new WebSocket.Server({
     }
 });
 
-// ocsp.getOCSPURI(rawCert, function(err, uri) {
-//     if (err) return console.log(err);
-//     var req = ocsp.request.generate(rawCert, rawIssuer);
-//     var options = {
-//         url: uri,
-//         ocsp: req.data
-//     };
-//     ocspCache.request(req.id, options, null);
-
-//     // ocspCache.probe(req.id, function(err, cached) {
-//     //     if (err) console.log(err);
-//     //     if (cached !== false) console.log(cached.response);
-  
-//     //     var options = {
-//     //       url: uri,
-//     //       ocsp: req.data
-//     //     };
-  
-//     //     ocspCache.request(req.id, options);
-//     // });
-// });
-
-// // clear the Cache manually
-// var cacheIds = Object.keys(ocspCache.cache)
-// cacheIds.forEach(cacheId => {
-//     clearInterval(ocspCache.cache[cacheId].timer)
-// });
-
 wss.on('connection', function connection(ws, req) {
-
     // console.log(req.connection.remoteAddress);
     // console.log(req.socket.getPeerCertificate().subject.CN);
     // console.log(req.method);
@@ -115,35 +84,9 @@ wss.on('connection', function connection(ws, req) {
     });
 });
 
-// server.on('OCSPRequest', function(cert, issuer, callback) {
-//     console.log('OCSPRequest');
-//     ocsp.getOCSPURI(cert, function(err, uri) {
-//         if (err) return callback(error);
-//         var req = ocsp.request.generate(cert, issuer);
-//         var options = {
-//             url: uri,
-//             ocsp: req.data
-//         };
-//         ocspCache.request(req.id, options, callback);
-//     });
-// });
-
-// // Omit
-// var sslSessionCache = {};
-// server.on('newSession', function(sessionId, sessionData, callback) {
-//     sslSessionCache[sessionId] = sessionData;
-//     callback();
-// });
-
-// server.on('resumeSession', function (sessionId, callback) {
-//     console.log(ocspCache);
-//     callback(null, sslSessionCache[sessionId]);
-// });
-
 server.listen(PORT, ()=>{
     api.initAPI(app);
     ocsp_server.startServer().then(function (cbocsp) {
-        // var ocsprenewint = 1000 * 60 * 60 * 24; // 24h
         var ocsprenewint = 1000 * 60; // 1min
         reocsp = cbocsp;
 
